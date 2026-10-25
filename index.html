@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7f4">
+    <meta name="description" content="Control simple de inventario y reposición para tu bodega.">
+    <title>StockBodega | Control de inventario</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="StockBodega, inicio" data-view-link="inventory">
+          <span class="brand-mark" aria-hidden="true">S</span>
+          <span class="brand-copy"><strong>StockBodega</strong><small>Tu negocio, en orden</small></span>
+        </a>
+        <div class="sidebar-label">MENÚ PRINCIPAL</div>
+        <nav class="main-nav" aria-label="Navegación principal">
+          <button class="nav-link is-active" type="button" data-view-link="inventory">
+            <span class="nav-icon" aria-hidden="true">▦</span> Inventario
+          </button>
+          <button class="nav-link" type="button" data-view-link="restock">
+            <span class="nav-icon" aria-hidden="true">↻</span> Por reponer
+            <span class="nav-count" id="nav-restock-count">0</span>
+          </button>
+          <button class="nav-link" type="button" data-view-link="movements">
+            <span class="nav-icon" aria-hidden="true">◷</span> Movimientos
+          </button>
+        </nav>
+        <div class="sidebar-note">
+          <span class="note-icon" aria-hidden="true">✦</span>
+          <strong>Un negocio más ordenado</strong>
+          <p>Registra tus ventas y compras para tener siempre tu stock al día.</p>
+        </div>
+        <div class="sidebar-footer"><span class="online-dot"></span> Tus datos se guardan en este dispositivo</div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="page-eyebrow">RESUMEN DE TU BODEGA</p>
+            <h1 id="page-title">Inventario</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="button button-sale" type="button" id="sale-button">
+              <span aria-hidden="true">↗</span> Registrar venta
+            </button>
+            <button class="button button-secondary" type="button" id="export-button">
+              <span aria-hidden="true">⇩</span> Exportar CSV
+            </button>
+            <button class="button button-primary" type="button" id="add-product-button">
+              <span aria-hidden="true">＋</span> Nuevo producto
+            </button>
+          </div>
+        </header>
+
+        <div class="storage-warning" id="storage-warning" role="alert" hidden></div>
+        <section class="view-panel is-visible" id="inventory-view" aria-labelledby="page-title">
+          <div class="metric-grid" aria-label="Indicadores del inventario">
+            <article class="metric-card">
+              <div class="metric-top"><span class="metric-label">Productos registrados</span><span class="metric-icon icon-violet">▦</span></div>
+              <strong class="metric-value" id="metric-products">0</strong>
+              <span class="metric-foot">en tu inventario</span>
+            </article>
+            <article class="metric-card">
+              <div class="metric-top"><span class="metric-label">Unidades en stock</span><span class="metric-icon icon-blue">▤</span></div>
+              <strong class="metric-value" id="metric-units">0</strong>
+              <span class="metric-foot">unidades disponibles</span>
+            </article>
+            <article class="metric-card">
+              <div class="metric-top"><span class="metric-label">Valor del inventario</span><span class="metric-icon icon-green">S/</span></div>
+              <strong class="metric-value metric-currency" id="metric-value">S/ 0,00</strong>
+              <span class="metric-foot">estimado según precio registrado</span>
+            </article>
+            <article class="metric-card">
+              <div class="metric-top"><span class="metric-label">Necesitan atención</span><span class="metric-icon icon-orange">!</span></div>
+              <strong class="metric-value" id="metric-alerts">0</strong>
+              <span class="metric-foot"><span id="metric-low">0 con stock bajo</span><span class="metric-separator">·</span><span id="metric-empty">0 agotados</span></span>
+            </article>
+          </div>
+
+          <section class="content-card inventory-card">
+            <div class="section-heading">
+              <div><h2>Productos</h2><p>Revisa y administra los productos de tu bodega.</p></div>
+              <button class="button button-primary button-mobile-add" type="button" data-action="add-product"><span aria-hidden="true">＋</span> Agregar</button>
+            </div>
+            <div class="filter-bar">
+              <label class="search-box">
+                <span aria-hidden="true">⌕</span>
+                <input id="search-input" type="search" placeholder="Buscar producto..." autocomplete="off" aria-label="Buscar producto por nombre">
+              </label>
+              <label class="select-wrap">
+                <span class="sr-only">Filtrar por categoría</span>
+                <select id="category-filter"><option value="">Todas las categorías</option></select>
+              </label>
+              <label class="select-wrap">
+                <span class="sr-only">Filtrar por estado de stock</span>
+                <select id="status-filter">
+                  <option value="">Todos los estados</option>
+                  <option value="ok">OK</option>
+                  <option value="low">Stock bajo</option>
+                  <option value="empty">Agotado</option>
+                </select>
+              </label>
+            </div>
+            <div class="table-wrap">
+              <table class="product-table">
+                <thead><tr><th>PRODUCTO</th><th>CATEGORÍA</th><th>PRECIO</th><th>STOCK</th><th>ESTADO</th><th class="actions-heading">ACCIONES</th></tr></thead>
+                <tbody id="product-list"></tbody>
+              </table>
+              <div class="empty-state" id="inventory-empty" hidden>
+                <span class="empty-illustration" aria-hidden="true">▦</span>
+                <h3 id="inventory-empty-title">Aún no tienes productos</h3>
+                <p id="inventory-empty-copy">Agrega el primer producto para comenzar a controlar tu inventario.</p>
+                <button class="button button-primary" type="button" data-action="add-product">＋ Agregar producto</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" id="restock-view" aria-labelledby="page-title" hidden>
+          <section class="content-card">
+            <div class="section-heading">
+              <div><h2>Lista de compras sugerida</h2><p>Reponiendo esta cantidad, dejarás cada producto al doble de su stock mínimo.</p></div>
+              <span class="summary-pill" id="restock-summary">0 productos</span>
+            </div>
+            <div class="table-wrap">
+              <table class="product-table restock-table">
+                <thead><tr><th>PRODUCTO</th><th>CATEGORÍA</th><th>STOCK ACTUAL</th><th>STOCK MÍNIMO</th><th>CANTIDAD SUGERIDA</th><th class="actions-heading">ACCIÓN</th></tr></thead>
+                <tbody id="restock-list"></tbody>
+              </table>
+              <div class="empty-state" id="restock-empty" hidden>
+                <span class="empty-illustration empty-success" aria-hidden="true">✓</span>
+                <h3>¡Todo en orden!</h3>
+                <p>No hay productos por reponer. Aquí aparecerán cuando lleguen a su stock mínimo.</p>
+                <button class="button button-secondary" type="button" data-view-link="inventory">Ver inventario</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" id="movements-view" aria-labelledby="page-title" hidden>
+          <section class="content-card">
+            <div class="section-heading">
+              <div><h2>Historial de movimientos</h2><p>Consulta las compras, ventas y entradas iniciales registradas.</p></div>
+              <span class="summary-pill" id="movement-summary">0 movimientos</span>
+            </div>
+            <div class="table-wrap">
+              <table class="product-table movement-table">
+                <thead><tr><th>FECHA</th><th>PRODUCTO</th><th>TIPO</th><th>CANTIDAD</th><th>STOCK RESULTANTE</th><th>NOTA</th></tr></thead>
+                <tbody id="movement-list"></tbody>
+              </table>
+              <div class="empty-state" id="movement-empty" hidden>
+                <span class="empty-illustration" aria-hidden="true">◷</span>
+                <h3>Todavía no hay movimientos</h3>
+                <p>Las compras y ventas que registres aparecerán aquí.</p>
+              </div>
+            </div>
+          </section>
+        </section>
+        <footer class="page-footer">Hecho para ayudar a crecer a tu bodega <span aria-hidden="true">♥</span></footer>
+      </main>
+    </div>
+    <dialog class="app-dialog" id="app-dialog" aria-labelledby="dialog-title"></dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
